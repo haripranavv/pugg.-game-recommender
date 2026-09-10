@@ -1,4 +1,4 @@
-# 🐶 PUGG. — AI Game Discovery
+# PUGG. — AI Game Discovery
 
 > **Don't search. Let the engine choose. 🎮**
 
