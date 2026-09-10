@@ -1,408 +1,189 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pugg. — AI Game Recommendation</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="corner-art corner-art-a" aria-hidden="true">
-      <span>GTAV</span>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pugg. — AI Game Recommendation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="corner-art corner-art-a" aria-hidden="true"><span>GTAV</span></div>
+<div class="corner-art corner-art-b" aria-hidden="true"><span>MINECRAFT</span></div>
+<div class="corner-art corner-art-c" aria-hidden="true"><span>NIGHT CITY</span></div>
+<div class="corner-art corner-art-d" aria-hidden="true"><span>GAME WORLD</span></div>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-shell">
+    <div class="login-brand"><i></i> Pugg.</div>
+    <div class="login-kicker">AI GAME RECOMMENDATION SYSTEM</div>
+    <h1>Enter the<br><span>pugg.</span></h1>
+    <p class="login-copy">Sign in to build your player profile and receive personalized game recommendations.</p>
+
+    <form id="loginForm" class="login-form">
+      <label>Email address</label>
+      <input id="loginEmail" type="email" placeholder="you@example.com" required autocomplete="email">
+
+      <label>Password</label>
+      <input id="loginPassword" type="password" placeholder="••••••••" required minlength="4" autocomplete="current-password">
+
+      <button type="submit" class="login-button">Continue →</button>
+    </form>
+
+    <div class="login-footer">
+      <span>LOCAL DEMO</span>
+      <span>AI ENGINE READY</span>
     </div>
-    <div class="corner-art corner-art-b" aria-hidden="true">
-      <span>MINECRAFT</span>
+  </div>
+</div>
+
+<nav><div class="brand"><i></i>PUGG.</div><div class="navright"><button id="savedGamesBtn" class="saved-nav-btn"><span class="saved-tab-icon">★</span> Saved Games <span class="saved-count-pill" id="savedCount">0</span></button><button id="soundToggle" class="sound-toggle" title="Toggle audio feedback">🔊</button><span id="userEmail" class="user-email"></span><span class="status">AI ENGINE READY</span><button id="logoutBtn" class="logout-nav-btn">LOG OUT</button></div></nav>
+<main class="wrap">
+<section class="hero">
+<div class="kicker">AI game recommendation system / 01</div>
+<h1>Don't search.<br><em>Let the engine choose.</em></h1>
+<p>Describe how you want to play. The recommendation engine interprets your preferences, ranks compatible titles, and explains the decision instead of returning a random list.</p>
+</section>
+
+<section class="grid">
+<div class="panel">
+<div class="panelhead"><h2>Player profile</h2><div style="display:flex;align-items:center;gap:8px"><button type="button" class="shuffle-btn voice-btn" id="voiceBtn" title="Speak your gaming preferences using voice recognition">🎙️ Speak</button><button type="button" class="shuffle-btn" onclick="randomProfile()" title="Randomize profile preferences">⚡ Randomize</button><span class="step">INPUT / 08</span></div></div>
+<div id="voiceStatus" class="voice-status" style="display:none" role="status" aria-live="polite"></div>
+
+<div class="group"><div class="label">Primary genre</div><div class="options" data-key="genre">
+<button class="opt" data-value="action">Action</button><button class="opt" data-value="rpg">RPG</button>
+<button class="opt" data-value="strategy">Strategy</button><button class="opt" data-value="indie">Indie</button>
+<button class="opt" data-value="horror">Horror</button><button class="opt" data-value="simulation">Simulation</button>
+<button class="opt" data-value="adventure">Adventure</button><button class="opt" data-value="puzzle">Puzzle</button>
+</div></div>
+
+<div class="group"><div class="label">Current mood</div><div class="options" data-key="mood">
+<button class="opt" data-value="thrilling">Thrilling / Intense</button><button class="opt" data-value="cozy">Cozy / Relaxed</button>
+<button class="opt" data-value="dark">Dark / Eerie</button><button class="opt" data-value="cerebral">Cerebral / Deep</button>
+<button class="opt" data-value="escapist">Escapist / Wonder</button><button class="opt" data-value="triumphant">Triumphant / Heroic</button>
+</div></div>
+
+<div class="group"><div class="label">Play style</div><div class="options" data-key="mode">
+<button class="opt" data-value="solo">Solo</button><button class="opt" data-value="multi">Multiplayer</button>
+<button class="opt" data-value="both">Either</button><button class="opt" data-value="coop">Co-op</button>
+<button class="opt" data-value="competitive">Competitive PvP</button><button class="opt" data-value="casual">Casual / Social</button>
+</div></div>
+
+<div class="group"><div class="label">Difficulty tolerance</div><div class="options" data-key="difficulty">
+<button class="opt" data-value="relaxed">Relaxed</button><button class="opt" data-value="balanced">Balanced</button>
+<button class="opt" data-value="hard">Hard</button><button class="opt" data-value="extreme">Extreme</button>
+<button class="opt" data-value="story">Story focus</button><button class="opt" data-value="adaptive">Adaptive / Scalable</button>
+</div></div>
+
+<div class="group"><div class="label">Session commitment</div><div class="options" data-key="time">
+<button class="opt" data-value="short">Quick (&lt;30m)</button><button class="opt" data-value="medium">Few hours</button>
+<button class="opt" data-value="long">Long-term</button><button class="opt" data-value="any">No preference</button>
+<button class="opt" data-value="endless">Endless replay</button><button class="opt" data-value="bite">Bite-sized runs</button>
+</div></div>
+
+<div class="group"><div class="label">What matters most?</div><div class="options" data-key="priority">
+<button class="opt" data-value="story">Story</button><button class="opt" data-value="combat">Combat</button>
+<button class="opt" data-value="explore">Exploration</button><button class="opt" data-value="competitive">Competition</button>
+<button class="opt" data-value="atmosphere">Atmosphere & Lore</button><button class="opt" data-value="puzzle">Puzzles & Logic</button>
+</div></div>
+
+<div class="group"><div class="label">Preferred experience</div><div class="options" data-key="experience">
+<button class="opt" data-value="immersive">Immersive</button><button class="opt" data-value="fast">Fast-paced</button>
+<button class="opt" data-value="creative">Creative</button><button class="opt" data-value="strategic">Strategic</button>
+<button class="opt" data-value="cinematic">Cinematic</button><button class="opt" data-value="survival">Survival tension</button>
+</div></div>
+
+<div class="group budget-group">
+  <div class="label budget-label-row">
+    <span>What's your gaming budget?</span>
+    <span class="budget-badge-pill" id="activeBudgetBadge">NO BUDGET LIMIT</span>
+  </div>
+  <div class="options budget-options" data-key="budget">
+    <button type="button" class="opt budget-opt" data-value="free">
+      <span class="budget-card-title">Free Games Only</span>
+      <span class="budget-card-sub">₹0 · Free to Play</span>
+    </button>
+    <button type="button" class="opt budget-opt" data-value="under_500">
+      <span class="budget-card-title">Under ₹500</span>
+      <span class="budget-card-sub">Budget Friendly</span>
+    </button>
+    <button type="button" class="opt budget-opt" data-value="under_1000">
+      <span class="budget-card-title">Under ₹1,000</span>
+      <span class="budget-card-sub">Mid-Tier Value</span>
+    </button>
+    <button type="button" class="opt budget-opt" data-value="under_2000">
+      <span class="budget-card-title">Under ₹2,000</span>
+      <span class="budget-card-sub">Major Releases</span>
+    </button>
+    <button type="button" class="opt budget-opt active" data-value="no_limit">
+      <span class="budget-card-title">No Limit</span>
+      <span class="budget-card-sub">All Price Tiers</span>
+    </button>
+  </div>
+  <div class="custom-budget-wrap">
+    <div class="custom-budget-header">
+      <small>Or set a custom budget limit:</small>
+      <strong id="customBudgetValue">₹2,500</strong>
     </div>
-    <div class="corner-art corner-art-c" aria-hidden="true">
-      <span>NIGHT CITY</span>
+    <div class="slider-row">
+      <span class="slider-min">₹0</span>
+      <input type="range" id="customBudgetSlider" min="0" max="5000" step="50" value="2500" class="budget-slider" aria-label="Custom gaming budget in Indian Rupees">
+      <span class="slider-max">₹5,000+</span>
     </div>
-    <div class="corner-art corner-art-d" aria-hidden="true">
-      <span>GAME WORLD</span>
+  </div>
+</div>
+
+<button class="run" id="run" onclick="recommend()">Run recommendation →</button>
+<div class="upload-divider"><span>OR GUESS GAME FROM PICTURE</span></div>
+<div class="upload-wrap" id="uploadDropZone">
+  <input type="file" id="gameImageInput" accept="image/*" style="display:none">
+  <button type="button" class="upload-btn" id="uploadGameBtn" onclick="document.getElementById('gameImageInput').click()">
+    <span class="upload-icon"></span> Upload picture to guess game
+  </button>
+  <div id="uploadStatus" class="upload-status" style="display:none"></div>
+</div>
+<div class="note">Prototype note: this front-end demonstrates the AI recommendation experience. For production, connect the request to a server-side LLM/API rather than exposing an API key in the browser.</div>
+</div>
+
+<div class="panel output">
+<div class="empty" id="empty"><div class="emptybox"><div class="orb">AI</div><strong>Awaiting player profile</strong><p>Select your preferences. The engine will generate a ranked recommendation with an auditable decision trace.</p></div></div>
+
+<div class="result" id="result">
+<div class="aihead"><span class="ai-label" id="aiLabel">Recommendation / generated</span><span class="confidence" id="confidence"></span></div>
+<div id="imageMatchBanner" class="image-match-banner" style="display:none"></div>
+<div class="game">
+  <div class="budget-intel-bar" id="budgetIntelBar"></div>
+  <h3 id="title"></h3>
+  <div class="meta" id="meta"></div>
+  <div class="tags" id="tags"></div>
+</div>
+<div class="quick-stats" id="quickStats"></div>
+<div class="availability" id="availability"></div>
+<div class="actions">
+  <a class="buy" id="steamBtn" target="_blank" rel="noopener noreferrer">To the Steam ↗</a>
+  <button class="save" id="saveBtn">☆ Save the game</button>
+  <button type="button" class="share-btn" id="shareBtn" onclick="copyRecommendation()">⎘ Share</button>
+  <button class="buy" id="buyBtn" style="display:none">BUY NOW ↗</button>
+</div>
+<div class="similar-block"><div class="tracehead">You may also like</div><div class="similar" id="similar"></div></div>
+<div id="freeAlternativeContainer" class="free-alt-container" style="display:none"></div>
+<div class="reason" id="reason"></div>
+<div class="trace"><div class="tracehead">Decision trace</div><div id="trace"></div></div>
+<button class="reset" onclick="resetAll()">← Change preferences</button>
+</div>
+</div>
+</section>
+</main>
+
+<div id="savedModal" class="saved-modal" style="display:none">
+  <div class="saved-modal-content">
+    <div class="saved-modal-header">
+      <h3>Saved Games</h3>
+      <button id="closeSavedModal" class="close-modal" aria-label="Close">&times;</button>
     </div>
+    <div id="savedList" class="saved-list"></div>
+  </div>
+</div>
 
-    <div id="loginScreen" class="login-screen">
-      <div class="login-shell">
-        <div class="login-brand"><i></i> Pugg.</div>
-        <div class="login-kicker">AI GAME RECOMMENDATION SYSTEM</div>
-        <h1>Enter the<br /><span>pugg.</span></h1>
-        <p class="login-copy">
-          Sign in to build your player profile and receive personalized game
-          recommendations.
-        </p>
-
-        <form id="loginForm" class="login-form">
-          <label>Email address</label>
-          <input
-            id="loginEmail"
-            type="email"
-            placeholder="you@example.com"
-            required
-            autocomplete="email"
-          />
-
-          <label>Password</label>
-          <input
-            id="loginPassword"
-            type="password"
-            placeholder="••••••••"
-            required
-            minlength="4"
-            autocomplete="current-password"
-          />
-
-          <button type="submit" class="login-button">Continue →</button>
-        </form>
-
-        <div class="login-footer">
-          <span>LOCAL DEMO</span>
-          <span>AI ENGINE READY</span>
-        </div>
-      </div>
-    </div>
-
-    <nav>
-      <div class="brand"><i></i>Pugg.</div>
-      <div class="navright">
-        <button
-          id="soundToggle"
-          class="sound-toggle"
-          title="Toggle audio feedback"
-        >
-          🔊</button
-        ><button id="savedGamesBtn" class="saved-nav-btn">
-          Saved games (<span id="savedCount">0</span>)</button
-        ><span id="userEmail" class="user-email"></span
-        ><span class="status">AI ENGINE READY</span>
-      </div>
-    </nav>
-    <main class="wrap">
-      <section class="hero">
-        <div class="kicker">AI game recommendation system / 01</div>
-        <h1>Don't search.<br /><em>Let the engine choose.</em></h1>
-        <p>
-          Describe how you want to play. The recommendation engine interprets
-          your preferences, ranks compatible titles, and explains the decision
-          instead of returning a random list.
-        </p>
-      </section>
-
-      <section class="grid">
-        <div class="panel">
-          <div class="panelhead">
-            <h2>Player profile</h2>
-            <div style="display: flex; align-items: center; gap: 8px">
-              <button
-                type="button"
-                class="shuffle-btn voice-btn"
-                id="voiceBtn"
-                title="Speak your gaming preferences using voice recognition"
-              >
-                🎙️ Speak</button
-              ><button
-                type="button"
-                class="shuffle-btn"
-                onclick="randomProfile()"
-                title="Randomize profile preferences"
-              >
-                ⚡ Randomize</button
-              ><span class="step">INPUT / 08</span>
-            </div>
-          </div>
-          <div
-            id="voiceStatus"
-            class="voice-status"
-            style="display: none"
-            role="status"
-            aria-live="polite"
-          ></div>
-
-          <div class="group">
-            <div class="label">Primary genre</div>
-            <div class="options" data-key="genre">
-              <button class="opt" data-value="action">Action</button
-              ><button class="opt" data-value="rpg">RPG</button>
-              <button class="opt" data-value="strategy">Strategy</button
-              ><button class="opt" data-value="indie">Indie</button>
-              <button class="opt" data-value="horror">Horror</button
-              ><button class="opt" data-value="simulation">Simulation</button>
-              <button class="opt" data-value="adventure">Adventure</button
-              ><button class="opt" data-value="puzzle">Puzzle</button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">Current mood</div>
-            <div class="options" data-key="mood">
-              <button class="opt" data-value="thrilling">
-                Thrilling / Intense</button
-              ><button class="opt" data-value="cozy">Cozy / Relaxed</button>
-              <button class="opt" data-value="dark">Dark / Eerie</button
-              ><button class="opt" data-value="cerebral">
-                Cerebral / Deep
-              </button>
-              <button class="opt" data-value="escapist">
-                Escapist / Wonder</button
-              ><button class="opt" data-value="triumphant">
-                Triumphant / Heroic
-              </button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">Play style</div>
-            <div class="options" data-key="mode">
-              <button class="opt" data-value="solo">Solo</button
-              ><button class="opt" data-value="multi">Multiplayer</button>
-              <button class="opt" data-value="both">Either</button
-              ><button class="opt" data-value="coop">Co-op</button>
-              <button class="opt" data-value="competitive">
-                Competitive PvP</button
-              ><button class="opt" data-value="casual">Casual / Social</button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">Difficulty tolerance</div>
-            <div class="options" data-key="difficulty">
-              <button class="opt" data-value="relaxed">Relaxed</button
-              ><button class="opt" data-value="balanced">Balanced</button>
-              <button class="opt" data-value="hard">Hard</button
-              ><button class="opt" data-value="extreme">Extreme</button>
-              <button class="opt" data-value="story">Story focus</button
-              ><button class="opt" data-value="adaptive">
-                Adaptive / Scalable
-              </button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">Session commitment</div>
-            <div class="options" data-key="time">
-              <button class="opt" data-value="short">Quick (&lt;30m)</button
-              ><button class="opt" data-value="medium">Few hours</button>
-              <button class="opt" data-value="long">Long-term</button
-              ><button class="opt" data-value="any">No preference</button>
-              <button class="opt" data-value="endless">Endless replay</button
-              ><button class="opt" data-value="bite">Bite-sized runs</button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">What matters most?</div>
-            <div class="options" data-key="priority">
-              <button class="opt" data-value="story">Story</button
-              ><button class="opt" data-value="combat">Combat</button>
-              <button class="opt" data-value="explore">Exploration</button
-              ><button class="opt" data-value="competitive">Competition</button>
-              <button class="opt" data-value="atmosphere">
-                Atmosphere & Lore</button
-              ><button class="opt" data-value="puzzle">Puzzles & Logic</button>
-            </div>
-          </div>
-
-          <div class="group">
-            <div class="label">Preferred experience</div>
-            <div class="options" data-key="experience">
-              <button class="opt" data-value="immersive">Immersive</button
-              ><button class="opt" data-value="fast">Fast-paced</button>
-              <button class="opt" data-value="creative">Creative</button
-              ><button class="opt" data-value="strategic">Strategic</button>
-              <button class="opt" data-value="cinematic">Cinematic</button
-              ><button class="opt" data-value="survival">
-                Survival tension
-              </button>
-            </div>
-          </div>
-
-          <div class="group budget-group">
-            <div class="label budget-label-row">
-              <span>What's your gaming budget?</span>
-              <span class="budget-badge-pill" id="activeBudgetBadge"
-                >NO BUDGET LIMIT</span
-              >
-            </div>
-            <div class="options budget-options" data-key="budget">
-              <button type="button" class="opt budget-opt" data-value="free">
-                <span class="budget-card-title">Free Games Only</span>
-                <span class="budget-card-sub">₹0 · Free to Play</span>
-              </button>
-              <button
-                type="button"
-                class="opt budget-opt"
-                data-value="under_500"
-              >
-                <span class="budget-card-title">Under ₹500</span>
-                <span class="budget-card-sub">Budget Friendly</span>
-              </button>
-              <button
-                type="button"
-                class="opt budget-opt"
-                data-value="under_1000"
-              >
-                <span class="budget-card-title">Under ₹1,000</span>
-                <span class="budget-card-sub">Mid-Tier Value</span>
-              </button>
-              <button
-                type="button"
-                class="opt budget-opt"
-                data-value="under_2000"
-              >
-                <span class="budget-card-title">Under ₹2,000</span>
-                <span class="budget-card-sub">Major Releases</span>
-              </button>
-              <button
-                type="button"
-                class="opt budget-opt active"
-                data-value="no_limit"
-              >
-                <span class="budget-card-title">No Limit</span>
-                <span class="budget-card-sub">All Price Tiers</span>
-              </button>
-            </div>
-            <div class="custom-budget-wrap">
-              <div class="custom-budget-header">
-                <small>Or set a custom budget limit:</small>
-                <strong id="customBudgetValue">₹2,500</strong>
-              </div>
-              <div class="slider-row">
-                <span class="slider-min">₹0</span>
-                <input
-                  type="range"
-                  id="customBudgetSlider"
-                  min="0"
-                  max="5000"
-                  step="50"
-                  value="2500"
-                  class="budget-slider"
-                  aria-label="Custom gaming budget in Indian Rupees"
-                />
-                <span class="slider-max">₹5,000+</span>
-              </div>
-            </div>
-          </div>
-
-          <button class="run" id="run" onclick="recommend()">
-            Run recommendation →
-          </button>
-          <div class="upload-divider">
-            <span>OR GUESS GAME FROM PICTURE</span>
-          </div>
-          <div class="upload-wrap" id="uploadDropZone">
-            <input
-              type="file"
-              id="gameImageInput"
-              accept="image/*"
-              style="display: none"
-            />
-            <button
-              type="button"
-              class="upload-btn"
-              id="uploadGameBtn"
-              onclick="document.getElementById('gameImageInput').click()"
-            >
-              <span class="upload-icon"></span> Upload picture to guess game
-            </button>
-            <div
-              id="uploadStatus"
-              class="upload-status"
-              style="display: none"
-            ></div>
-          </div>
-          <div class="note">
-            Prototype note: this front-end demonstrates the AI recommendation
-            experience. For production, connect the request to a server-side
-            LLM/API rather than exposing an API key in the browser.
-          </div>
-        </div>
-
-        <div class="panel output">
-          <div class="empty" id="empty">
-            <div class="emptybox">
-              <div class="orb">AI</div>
-              <strong>Awaiting player profile</strong>
-              <p>
-                Select your preferences. The engine will generate a ranked
-                recommendation with an auditable decision trace.
-              </p>
-            </div>
-          </div>
-
-          <div class="result" id="result">
-            <div class="aihead">
-              <span class="ai-label" id="aiLabel"
-                >Recommendation / generated</span
-              ><span class="confidence" id="confidence"></span>
-            </div>
-            <div
-              id="imageMatchBanner"
-              class="image-match-banner"
-              style="display: none"
-            ></div>
-            <div class="game">
-              <div class="budget-intel-bar" id="budgetIntelBar"></div>
-              <h3 id="title"></h3>
-              <div class="meta" id="meta"></div>
-              <div class="tags" id="tags"></div>
-            </div>
-            <div class="quick-stats" id="quickStats"></div>
-            <div class="availability" id="availability"></div>
-            <div class="actions">
-              <a
-                class="buy"
-                id="steamBtn"
-                target="_blank"
-                rel="noopener noreferrer"
-                >To the Steam ↗</a
-              >
-              <button class="save" id="saveBtn">☆ Save the game</button>
-              <button
-                type="button"
-                class="share-btn"
-                id="shareBtn"
-                onclick="copyRecommendation()"
-              >
-                ⎘ Share
-              </button>
-              <button class="buy" id="buyBtn" style="display: none">
-                BUY NOW ↗
-              </button>
-            </div>
-            <div class="similar-block">
-              <div class="tracehead">You may also like</div>
-              <div class="similar" id="similar"></div>
-            </div>
-            <div
-              id="freeAlternativeContainer"
-              class="free-alt-container"
-              style="display: none"
-            ></div>
-            <div class="reason" id="reason"></div>
-            <div class="trace">
-              <div class="tracehead">Decision trace</div>
-              <div id="trace"></div>
-            </div>
-            <button class="reset" onclick="resetAll()">
-              ← Change preferences
-            </button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <div id="savedModal" class="saved-modal" style="display: none">
-      <div class="saved-modal-content">
-        <div class="saved-modal-header">
-          <h3>Saved Games</h3>
-          <button id="closeSavedModal" class="close-modal" aria-label="Close">
-            &times;
-          </button>
-        </div>
-        <div id="savedList" class="saved-list"></div>
-      </div>
-    </div>
-
-    <button id="logoutBtn" class="logout-btn">LOG OUT</button>
-
-    <script src="script.js"></script>
-  </body>
+<script src="script.js"></script>
+</body>
 </html>
