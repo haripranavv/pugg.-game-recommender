@@ -12,8 +12,26 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Serve static frontend assets
-app.use(express.static(path.join(__dirname)));
+// Serve static frontend assets (both public directory and root directory)
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+app.use(express.static(path.join(__dirname), { index: false }));
+
+// Explicit static handlers with strict MIME types to prevent catch-all HTML fallback
+app.get('/style.css', (req, res) => {
+  const cssPath = path.join(__dirname, 'public', 'style.css');
+  res.type('text/css');
+  res.sendFile(cssPath, (err) => {
+    if (err) res.sendFile(path.join(__dirname, 'style.css'));
+  });
+});
+
+app.get('/script.js', (req, res) => {
+  const jsPath = path.join(__dirname, 'public', 'script.js');
+  res.type('application/javascript');
+  res.sendFile(jsPath, (err) => {
+    if (err) res.sendFile(path.join(__dirname, 'script.js'));
+  });
+});
 
 // In-memory user saved games storage (keyed by email)
 const userSavedGames = new Map();
@@ -885,21 +903,33 @@ app.post('/api/save-game', (req, res) => {
   res.json({ success: true, savedGames: list });
 });
 
-// Serve frontend for root
+// Serve frontend for root and client routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  // Never return index.html for missing static files or API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Endpoint not found' });
+  }
+  if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
+    return res.status(404).send('File not found');
+  }
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) res.sendFile(path.join(__dirname, 'index.html'));
+  });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`=================================================`);
-  console.log(`🚀 Blackbox AI Game Recommendation Engine Online`);
-  console.log(`📡 Server running on http://localhost:${PORT}`);
-  console.log(`🎮 Game library loaded: ${games.length} titles`);
-  console.log(`🧠 Active AI Provider: ${getAiProviderName()}`);
-  console.log(`🎙️ Speech Recognition Engine: Integrated`);
-  console.log(`👁️ Multimodal Image Recognition: Active`);
-  console.log(`=================================================`);
-});
+// Start Server (only when run directly as main module, not when imported as serverless function)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`=================================================`);
+    console.log(`🚀 Blackbox AI Game Recommendation Engine Online`);
+    console.log(`📡 Server running on http://localhost:${PORT}`);
+    console.log(`🎮 Game library loaded: ${games.length} titles`);
+    console.log(`🧠 Active AI Provider: ${getAiProviderName()}`);
+    console.log(`🎙️ Speech Recognition Engine: Integrated`);
+    console.log(`👁️ Multimodal Image Recognition: Active`);
+    console.log(`=================================================`);
+  });
+}
 
 module.exports = app;
