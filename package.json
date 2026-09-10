@@ -1,0 +1,28 @@
+{
+  "name": "blackbox-ai-game-recommender",
+  "version": "2.0.0",
+  "description": "Blackbox — AI Game Recommendation & Visual Identification System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node -e \"require('./server.js'); console.log('Server verified'); process.exit(0);\"",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "ai",
+    "game-recommender",
+    "steam",
+    "visual-recognition",
+    "gaming"
+  ],
+  "author": "Blackbox AI",
+  "license": "MIT"
+}
