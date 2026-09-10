@@ -36,6 +36,14 @@ app.get('/script.js', (req, res) => {
 // In-memory user saved games storage (keyed by email)
 const userSavedGames = new Map();
 
+// Public Runtime Configuration (Exposes only safe public Supabase URL and Anon Key)
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+  });
+});
+
 // Active AI Model Provider Detection
 function getAiProvider() {
   if (process.env.GEMINI_API_KEY) return 'gemini';

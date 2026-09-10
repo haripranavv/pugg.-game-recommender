@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pugg. — AI Game Recommendation</title>
+<title>PUGG. — AI Game Recommendation</title>
 <link rel="stylesheet" href="style.css">
+<!-- Official Supabase JavaScript Client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="corner-art corner-art-a" aria-hidden="true"><span>GTAV</span></div>
@@ -14,29 +16,80 @@
 
 <div id="loginScreen" class="login-screen">
   <div class="login-shell">
-    <div class="login-brand"><i></i> Pugg.</div>
+    <div class="login-brand"><i></i> PUGG.</div>
     <div class="login-kicker">AI GAME RECOMMENDATION SYSTEM</div>
     <h1>Enter the<br><span>pugg.</span></h1>
-    <p class="login-copy">Sign in to build your player profile and receive personalized game recommendations.</p>
+    <p class="login-copy">Sign in or create an account to save recommendations, build your gamer profile, and access your library.</p>
+
+    <div class="auth-tabs">
+      <button type="button" id="tabSignIn" class="auth-tab active">Sign In</button>
+      <button type="button" id="tabSignUp" class="auth-tab">Create Account</button>
+    </div>
 
     <form id="loginForm" class="login-form">
       <label>Email address</label>
       <input id="loginEmail" type="email" placeholder="you@example.com" required autocomplete="email">
 
       <label>Password</label>
-      <input id="loginPassword" type="password" placeholder="••••••••" required minlength="4" autocomplete="current-password">
+      <input id="loginPassword" type="password" placeholder="••••••••" required minlength="6" autocomplete="current-password">
 
-      <button type="submit" class="login-button">Continue →</button>
+      <div id="authError" class="auth-error" style="display:none;"></div>
+
+      <button type="submit" id="authSubmitBtn" class="login-button">Sign In →</button>
     </form>
 
     <div class="login-footer">
-      <span>LOCAL DEMO</span>
+      <span id="authModeLabel">SECURE SUPABASE AUTH</span>
       <span>AI ENGINE READY</span>
     </div>
   </div>
 </div>
 
-<nav><div class="brand"><i></i>PUGG.</div><div class="navright"><button id="savedGamesBtn" class="saved-nav-btn"><span class="saved-tab-icon">★</span> Saved Games <span class="saved-count-pill" id="savedCount">0</span></button><button id="soundToggle" class="sound-toggle" title="Toggle audio feedback">🔊</button><span id="userEmail" class="user-email"></span><span class="status">AI ENGINE READY</span><button id="logoutBtn" class="logout-nav-btn">LOG OUT</button></div></nav>
+<nav class="nav">
+  <div class="nav-left">
+    <div class="brand" title="PUGG. — AI Game Recommendation Engine">
+      <div class="brand-emblem" aria-hidden="true">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Geometric stylized pug head mask with gaming aesthetics -->
+          <path class="emblem-contour" d="M4 12.5L8 6.5L12 9.5H16L20 6.5L24 12.5L22.5 21H5.5L4 12.5Z" stroke="#c8ff5a" stroke-width="1.75" stroke-linejoin="round"/>
+          <path class="emblem-brow" d="M10 12H18" stroke="#c8ff5a" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+          <!-- Expressive glowing tech eyes -->
+          <rect class="emblem-eye" x="8" y="13.5" width="3" height="3" rx="1" fill="#c8ff5a"/>
+          <rect class="emblem-eye" x="17" y="13.5" width="3" height="3" rx="1" fill="#c8ff5a"/>
+          <!-- Snout & mouth structure -->
+          <path class="emblem-muzzle" d="M11.5 17.5C12.2 16.8 15.8 16.8 16.5 17.5L14 19.5L11.5 17.5Z" fill="#c8ff5a" opacity="0.85"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-wrap">
+          <span class="brand-title">PUGG</span><span class="brand-dot">.</span>
+        </div>
+        <span class="brand-sub">PLAY MORE GAMES BETTER</span>
+      </div>
+    </div>
+    <button id="savedGamesBtn" class="saved-nav-btn" title="View your saved games library">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Saved Games</span>
+      <span class="saved-count-pill" id="savedCount">0</span>
+    </button>
+  </div>
+
+  <div class="nav-right">
+    <button id="soundToggle" class="sound-toggle" title="Toggle audio feedback">
+      <svg class="sound-icon sound-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      <svg class="sound-icon sound-icon-off" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+    </button>
+    <div class="nav-status-group">
+      <span class="status-dot"></span>
+      <span class="status-text">AI ENGINE READY</span>
+    </div>
+    <span id="userEmail" class="user-email" title="Logged in player"></span>
+    <button id="logoutBtn" class="logout-nav-btn" title="Log out of PUGG.">
+      <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span>LOG OUT</span>
+    </button>
+  </div>
+</nav>
 <main class="wrap">
 <section class="hero">
 <div class="kicker">AI game recommendation system / 01</div>
@@ -46,7 +99,7 @@
 
 <section class="grid">
 <div class="panel">
-<div class="panelhead"><h2>Player profile</h2><div style="display:flex;align-items:center;gap:8px"><button type="button" class="shuffle-btn voice-btn" id="voiceBtn" title="Speak your gaming preferences using voice recognition">🎙️ Speak</button><button type="button" class="shuffle-btn" onclick="randomProfile()" title="Randomize profile preferences">⚡ Randomize</button><span class="step">INPUT / 08</span></div></div>
+<div class="panelhead"><h2>Player profile</h2><div style="display:flex;align-items:center;gap:8px"><button type="button" class="shuffle-btn voice-btn" id="voiceBtn" title="Speak your gaming preferences using voice recognition"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Speak</span></button><button type="button" class="shuffle-btn" onclick="randomProfile()" title="Randomize profile preferences"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-5 5"/><path d="M4 20L21 3"/><path d="m21 16-5 5-5-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg><span>Randomize</span></button><span class="step">INPUT / 08</span></div></div>
 <div id="voiceStatus" class="voice-status" style="display:none" role="status" aria-live="polite"></div>
 
 <div class="group"><div class="label">Primary genre</div><div class="options" data-key="genre">

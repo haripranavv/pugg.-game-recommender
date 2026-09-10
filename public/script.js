@@ -4477,7 +4477,14 @@ const soundToggleBtn = document.getElementById("soundToggle");
 if (soundToggleBtn) {
   soundToggleBtn.addEventListener("click", () => {
     soundEnabled = !soundEnabled;
-    soundToggleBtn.textContent = soundEnabled ? "🔊" : "🔇";
+    const iconOn = soundToggleBtn.querySelector(".sound-icon-on");
+    const iconOff = soundToggleBtn.querySelector(".sound-icon-off");
+    if (iconOn && iconOff) {
+      iconOn.style.display = soundEnabled ? "block" : "none";
+      iconOff.style.display = soundEnabled ? "none" : "block";
+    } else {
+      soundToggleBtn.textContent = soundEnabled ? "🔊" : "🔇";
+    }
     soundToggleBtn.title = soundEnabled ? "Mute audio feedback" : "Enable audio feedback";
     if (soundEnabled) playUiTone(620, "triangle", 0.08, 0.08);
   });
@@ -5347,25 +5354,31 @@ function populateCommerce(g) {
 
     updateSaveButtonState(saveBtn, isAlreadySaved);
 
-    saveBtn.onclick = () => {
+    saveBtn.onclick = async () => {
       playUiTone(680, "triangle", 0.07, 0.06);
       const currentList = getSavedGames();
       const existingIdx = currentList.findIndex(item => item.title === g.title);
 
       if (existingIdx >= 0) {
-        currentList.splice(existingIdx, 1);
+        const removed = currentList.splice(existingIdx, 1)[0];
         saveSavedGames(currentList);
         updateSaveButtonState(saveBtn, false);
+        if (removed) removeGameFromSupabase(removed);
       } else {
-        currentList.unshift({
+        const newGame = {
           title: g.title,
           genre: g.genre,
           meta: g.meta,
           steamUrl: steamTargetUrl,
-          rating: g.rating || "N/A"
-        });
+          rating: g.rating || "N/A",
+          priceInr: g.priceInr || 0,
+          isFree: !!(g.isFree || g.priceInr === 0),
+          vfmScore: g.vfmScore || 10.0
+        };
+        currentList.unshift(newGame);
         saveSavedGames(currentList);
         updateSaveButtonState(saveBtn, true);
+        addGameToSupabase(newGame);
       }
       renderSavedGamesModal();
     };
@@ -5382,21 +5395,106 @@ function updateSaveButtonState(btn, isSaved) {
   }
 }
 
-// Local storage management for Saved Games
+// Supabase Database & Local Storage sync for Saved Games
+let currentUserSession = null;
+let currentSavedGamesCache = [];
+
 function getSavedGames() {
+  if (currentSavedGamesCache && currentSavedGamesCache.length > 0) {
+    return currentSavedGamesCache;
+  }
   try {
     const data = localStorage.getItem("blackbox_saved_games");
-    return data ? JSON.parse(data) : [];
+    currentSavedGamesCache = data ? JSON.parse(data) : [];
+    return currentSavedGamesCache;
   } catch (err) {
     return [];
   }
 }
 
-function saveSavedGames(list) {
+async function loadUserSavedGames() {
+  if (currentUserSession && currentUserSession.user && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('saved_games')
+        .select('*')
+        .order('saved_at', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        currentSavedGamesCache = data.map(row => ({
+          id: row.id,
+          title: row.game_title,
+          genre: row.genre || '',
+          meta: row.meta || '',
+          steamUrl: row.steam_url || '',
+          rating: row.rating || 'N/A',
+          priceInr: row.price_inr || 0,
+          isFree: row.is_free || false,
+          vfmScore: row.vfm_score || 10.0
+        }));
+        try {
+          localStorage.setItem("blackbox_saved_games", JSON.stringify(currentSavedGamesCache));
+        } catch (e) {}
+        updateSavedGamesCounter();
+        renderSavedGamesModal();
+        return currentSavedGamesCache;
+      }
+    } catch (err) {
+      console.warn("Error querying Supabase saved_games:", err);
+    }
+  }
+  return getSavedGames();
+}
+
+async function saveSavedGames(list) {
+  currentSavedGamesCache = list;
   try {
     localStorage.setItem("blackbox_saved_games", JSON.stringify(list));
   } catch (err) {}
   updateSavedGamesCounter();
+}
+
+async function addGameToSupabase(gameObj) {
+  if (currentUserSession && currentUserSession.user && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('saved_games')
+        .insert([{
+          user_id: currentUserSession.user.id,
+          game_title: gameObj.title,
+          genre: gameObj.genre || '',
+          meta: gameObj.meta || '',
+          steam_url: gameObj.steamUrl || '',
+          rating: gameObj.rating || 'N/A',
+          price_inr: gameObj.priceInr || 0,
+          is_free: !!gameObj.isFree,
+          vfm_score: gameObj.vfmScore || 10.0
+        }])
+        .select();
+      if (!error && data && data[0]) {
+        gameObj.id = data[0].id;
+      }
+    } catch (err) {
+      console.warn("Supabase insert error:", err);
+    }
+  }
+}
+
+async function removeGameFromSupabase(gameObj) {
+  if (currentUserSession && currentUserSession.user && supabaseClient) {
+    try {
+      if (gameObj.id) {
+        await supabaseClient.from('saved_games').delete().eq('id', gameObj.id);
+      } else {
+        await supabaseClient.from('saved_games').delete().match({
+          user_id: currentUserSession.user.id,
+          game_title: gameObj.title
+        });
+      }
+    } catch (err) {
+      console.warn("Supabase delete error:", err);
+    }
+  }
 }
 
 function updateSavedGamesCounter() {
@@ -5475,12 +5573,15 @@ function renderSavedGamesModal() {
   `).join("");
 }
 
-window.removeSavedGame = function(idx) {
+window.removeSavedGame = async function(idx) {
   playUiTone(320, "sine", 0.05, 0.04);
   const list = getSavedGames();
-  list.splice(idx, 1);
+  const removed = list.splice(idx, 1)[0];
   saveSavedGames(list);
   renderSavedGamesModal();
+  if (removed) {
+    removeGameFromSupabase(removed);
+  }
 
   const currentTitleEl = document.getElementById("title");
   const saveBtn = document.getElementById("saveBtn");
@@ -5806,48 +5907,230 @@ function displayGuessedGame(g, imageSrc, confidence, visualDetails, isRealAiVisi
   }
 }
 
-// Authentication Flow
+// Real Supabase Authentication & Session Management
+let supabaseClient = null;
+let currentAuthMode = 'signin'; // 'signin' or 'signup'
+
 const loginScreen = document.getElementById("loginScreen");
 const loginForm = document.getElementById("loginForm");
 const userEmail = document.getElementById("userEmail");
 const logoutBtn = document.getElementById("logoutBtn");
+const tabSignIn = document.getElementById("tabSignIn");
+const tabSignUp = document.getElementById("tabSignUp");
+const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authError = document.getElementById("authError");
+const authModeLabel = document.getElementById("authModeLabel");
 
-function showApp(email) {
+function setAuthMode(mode) {
+  currentAuthMode = mode;
+  if (authError) {
+    authError.style.display = "none";
+    authError.textContent = "";
+  }
+  if (mode === 'signup') {
+    if (tabSignUp) tabSignUp.classList.add("active");
+    if (tabSignIn) tabSignIn.classList.remove("active");
+    if (authSubmitBtn) authSubmitBtn.textContent = "Create Account →";
+    if (authModeLabel) authModeLabel.textContent = "NEW USER REGISTRATION";
+  } else {
+    if (tabSignIn) tabSignIn.classList.add("active");
+    if (tabSignUp) tabSignUp.classList.remove("active");
+    if (authSubmitBtn) authSubmitBtn.textContent = "Sign In →";
+    if (authModeLabel) authModeLabel.textContent = "SECURE SUPABASE AUTH";
+  }
+}
+
+if (tabSignIn) {
+  tabSignIn.addEventListener("click", () => {
+    playUiTone(500, "sine", 0.04, 0.04);
+    setAuthMode('signin');
+  });
+}
+
+if (tabSignUp) {
+  tabSignUp.addEventListener("click", () => {
+    playUiTone(540, "sine", 0.04, 0.04);
+    setAuthMode('signup');
+  });
+}
+
+function showAuthError(msg) {
+  if (authError) {
+    authError.textContent = msg;
+    authError.style.display = "block";
+  }
+}
+
+async function showApp(email, session = null) {
+  currentUserSession = session;
   if (loginScreen) loginScreen.style.display = "none";
   if (userEmail) userEmail.textContent = email;
   if (logoutBtn) logoutBtn.style.display = "block";
+  if (authError) authError.style.display = "none";
+
+  // Query Supabase for persisted saved games
+  await loadUserSavedGames();
   updateSavedGamesCounter();
 }
 
 function showLogin() {
+  currentUserSession = null;
+  currentSavedGamesCache = [];
   if (loginScreen) loginScreen.style.display = "grid";
   if (logoutBtn) logoutBtn.style.display = "none";
+  if (userEmail) userEmail.textContent = "";
+  updateSavedGamesCounter();
+}
+
+// Initialize Supabase Client
+async function initSupabaseAuth() {
+  let supabaseUrl = "";
+  let supabaseAnonKey = "";
+
+  try {
+    const res = await fetch("/api/config");
+    if (res.ok) {
+      const cfg = await res.json();
+      supabaseUrl = cfg.supabaseUrl;
+      supabaseAnonKey = cfg.supabaseAnonKey;
+    }
+  } catch (e) {
+    console.warn("Config endpoint offline, checking window configuration");
+  }
+
+  // Fallback to window globals if set
+  if (!supabaseUrl && window.__SUPABASE_URL__) {
+    supabaseUrl = window.__SUPABASE_URL__;
+    supabaseAnonKey = window.__SUPABASE_ANON_KEY__;
+  }
+
+  if (window.supabase && supabaseUrl && supabaseAnonKey) {
+    try {
+      supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+      // Listen to Supabase auth state changes
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (session && session.user) {
+          showApp(session.user.email, session);
+        } else if (event === 'SIGNED_OUT') {
+          showLogin();
+        }
+      });
+
+      // Check current persistent session
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session && session.user) {
+        showApp(session.user.email, session);
+        return;
+      }
+    } catch (err) {
+      console.warn("Supabase init warning:", err);
+    }
+  }
+
+  // Fallback if Supabase credentials are not yet entered in .env
+  const fallbackUser = localStorage.getItem("blackbox_user");
+  if (fallbackUser) {
+    showApp(fallbackUser, null);
+  } else {
+    showLogin();
+  }
 }
 
 if (loginForm) {
-  loginForm.addEventListener("submit", function(e) {
+  loginForm.addEventListener("submit", async function(e) {
     e.preventDefault();
-    const email = document.getElementById("loginEmail").value.trim();
-    if (!email) return;
-    localStorage.setItem("blackbox_user", email);
-    showApp(email);
+    const emailInput = document.getElementById("loginEmail");
+    const passwordInput = document.getElementById("loginPassword");
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value : "";
+
+    if (!email || !password) return;
+
+    if (authError) authError.style.display = "none";
+    if (authSubmitBtn) {
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.textContent = currentAuthMode === 'signup' ? "Creating Account..." : "Signing In...";
+    }
+
+    if (supabaseClient) {
+      try {
+        if (currentAuthMode === 'signup') {
+          const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password
+          });
+          if (error) {
+            showAuthError(error.message);
+            if (authSubmitBtn) {
+              authSubmitBtn.disabled = false;
+              authSubmitBtn.textContent = "Create Account →";
+            }
+            return;
+          }
+          if (data && data.user) {
+            if (data.session) {
+              showApp(data.user.email, data.session);
+            } else {
+              // Supabase confirm email check or auto-session
+              showAuthError("Account created! If email confirmation is enabled, please verify your inbox, or sign in now.");
+              setAuthMode('signin');
+            }
+          }
+        } else {
+          // Sign In
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+          if (error) {
+            showAuthError(error.message);
+            if (authSubmitBtn) {
+              authSubmitBtn.disabled = false;
+              authSubmitBtn.textContent = "Sign In →";
+            }
+            return;
+          }
+          if (data && data.user) {
+            showApp(data.user.email, data.session);
+          }
+        }
+      } catch (err) {
+        showAuthError(err.message || "Authentication error occurred.");
+      } finally {
+        if (authSubmitBtn) {
+          authSubmitBtn.disabled = false;
+          authSubmitBtn.textContent = currentAuthMode === 'signup' ? "Create Account →" : "Sign In →";
+        }
+      }
+    } else {
+      // Local fallback if Supabase credentials are empty
+      localStorage.setItem("blackbox_user", email);
+      showApp(email, null);
+      if (authSubmitBtn) {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = currentAuthMode === 'signup' ? "Create Account →" : "Sign In →";
+      }
+    }
   });
 }
 
 if (logoutBtn) {
-  logoutBtn.addEventListener("click", function() {
+  logoutBtn.addEventListener("click", async function() {
+    playUiTone(360, "sine", 0.05, 0.04);
     localStorage.removeItem("blackbox_user");
+    localStorage.removeItem("blackbox_saved_games");
+    if (supabaseClient) {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (e) {}
+    }
     showLogin();
   });
 }
 
-const savedUser = localStorage.getItem("blackbox_user");
-if (savedUser) {
-  showApp(savedUser);
-}
-
-// Initial state setup
-updateSavedGamesCounter();
+// Initialize Supabase Auth on page load
+initSupabaseAuth();
 
 // Real-time Backend Health Connection Check
 async function initBackendConnection() {
@@ -5855,7 +6138,7 @@ async function initBackendConnection() {
     const res = await fetch("/api/health");
     if (res.ok) {
       const data = await res.json();
-      const statusEl = document.querySelector(".status");
+      const statusEl = document.querySelector(".status-text") || document.querySelector(".status");
       if (statusEl) {
         const modelLabel = data.aiModel && data.aiModel.isRealAiActive ? `${data.aiModel.providerName} ONLINE` : `AI ENGINE READY (${data.librarySize || 45} TITLES)`;
         statusEl.textContent = modelLabel.toUpperCase();

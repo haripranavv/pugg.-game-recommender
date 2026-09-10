@@ -41,6 +41,19 @@ The application is completely self-contained with relative API endpoints (/api/.
 3. Click Deploy.
 
 ## 🔒 Environment Variables
-- PORT: Port on which the server listens (defaults to 4000 or provider-assigned PORT).
-- GEMINI_API_KEY: (Optional) Google Gemini API Key for generative reasoning and vision.
-- OPENAI_API_KEY: (Optional) OpenAI API Key.
+- `PORT`: Port on which the server listens (defaults to 4000 or provider-assigned PORT).
+- `SUPABASE_URL`: (Recommended) Your Supabase project URL (e.g., `https://xyzcompany.supabase.co`).
+- `SUPABASE_ANON_KEY`: (Recommended) Your Supabase public anonymous API key (`anon` `public`).
+- `GEMINI_API_KEY`: (Optional) Google Gemini API Key for generative reasoning and vision.
+- `OPENAI_API_KEY`: (Optional) OpenAI API Key.
+
+## 🗄️ Supabase Authentication & Database Setup
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Go to **Project Settings** > **API** and copy:
+   - **Project URL** -> `SUPABASE_URL`
+   - **Project API Anon Key** -> `SUPABASE_ANON_KEY`
+3. Add these to your `.env` file or hosting environment variables (e.g. Render / Vercel).
+4. Go to **SQL Editor** in Supabase, open `supabase_schema.sql` from this repository, paste the SQL, and click **Run**.
+   - Creates the `public.saved_games` table with user foreign keys.
+   - Automatically enables Row Level Security (RLS) with SELECT, INSERT, and DELETE policies restricting access strictly to each authenticated user (`auth.uid() = user_id`).
+
