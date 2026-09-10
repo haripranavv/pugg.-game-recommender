@@ -4494,6 +4494,11 @@ if (soundToggleBtn) {
 document.querySelectorAll(".options").forEach(g => g.addEventListener("click", e => {
   const btn = e.target.closest(".opt");
   if (!btn) return;
+  e.preventDefault();
+
+  // Anchor current vertical scroll position so selecting options does not cause scrolling shifts
+  const prevScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+
   g.querySelectorAll(".opt").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   const key = g.dataset.key;
@@ -4501,8 +4506,21 @@ document.querySelectorAll(".options").forEach(g => g.addEventListener("click", e
   selected[key] = val;
   playUiTone(520, "sine", 0.04, 0.04);
 
+  // Blur button to prevent native browser focus from auto-scrolling viewport
+  if (typeof btn.blur === "function") {
+    btn.blur();
+  }
+
   if (key === "budget") {
     onBudgetSelected(val, false);
+  }
+
+  // Ensure scroll position remains 100% stable without vertical scrolling jump
+  if (typeof window !== "undefined") {
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (Math.abs(currentScrollY - prevScrollY) > 0) {
+      window.scrollTo({ top: prevScrollY, behavior: "instant" });
+    }
   }
 }));
 
@@ -5634,6 +5652,58 @@ function guessGameFromImage(file) {
   reader.onload = async function(evt) {
     const imageSrc = evt.target.result;
 
+    // Fast client-side chromatic feature pre-extraction
+    let chromaticFeatures = null;
+    try {
+      chromaticFeatures = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const w = Math.min(160, img.width || 160);
+            const h = Math.min(160, img.height || 160);
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+            const data = ctx.getImageData(0, 0, w, h).data;
+            let totalR = 0, totalG = 0, totalB = 0;
+            let redDominant = 0, greenDominant = 0, blueDominant = 0, yellowAmber = 0, cyanNeon = 0;
+            let darkPixels = 0, brightPixels = 0;
+            const count = w * h;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i], g = data[i+1], b = data[i+2];
+              totalR += r; totalG += g; totalB += b;
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              if (lum < 55) darkPixels++;
+              if (lum > 185) brightPixels++;
+              if (r > g + 25 && r > b + 25) redDominant++;
+              else if (g > r + 20 && g > b + 20) greenDominant++;
+              else if (b > r + 20 && b > g + 20) blueDominant++;
+              else if (r > 130 && g > 110 && b < 80) yellowAmber++;
+              else if (g > 140 && b > 140 && r < 100) cyanNeon++;
+            }
+            resolve({
+              avgR: Math.round(totalR / (count || 1)),
+              avgG: Math.round(totalG / (count || 1)),
+              avgB: Math.round(totalB / (count || 1)),
+              darkRatio: darkPixels / (count || 1),
+              brightRatio: brightPixels / (count || 1),
+              redDominant,
+              greenDominant,
+              blueDominant,
+              yellowAmber,
+              cyanNeon
+            });
+          } catch (e) {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = imageSrc;
+      });
+    } catch (e) {}
+
     // 1. First attempt real multimodal AI Vision via backend endpoint
     try {
       const res = await fetch("/api/guess-image", {
@@ -5642,7 +5712,8 @@ function guessGameFromImage(file) {
         body: JSON.stringify({
           filename: file.name,
           imageData: imageSrc,
-          mimeType: file.type || "image/jpeg"
+          mimeType: file.type || "image/jpeg",
+          chromaticFeatures
         })
       });
       if (res.ok) {
@@ -5709,7 +5780,7 @@ function guessGameFromImage(file) {
         "Subnautica": ["subnautica", "leviathan", "ocean", "cyclops", "underwater"],
         "DOOM Eternal": ["doom", "slayer", "eternal", "demon", "hell"],
         "Counter-Strike 2": ["cs", "cs2", "counterstrike", "dust2", "mirage"],
-        "Valorant": ["valorant", "val", "jett", "reyna", "sage"],
+        "Valorant": ["val", "jett", "reyna", "sage"],
         "Baldur's Gate 3": ["baldur", "bg3", "gate", "mindflayer", "astarion"],
         "Hollow Knight": ["hollow", "knight", "hallownest", "hornet"],
         "Stardew Valley": ["stardew", "valley", "pelican", "farm"],
@@ -5736,7 +5807,25 @@ function guessGameFromImage(file) {
         "Microsoft Flight Simulator": ["flight sim", "airplane", "cessna", "boeing"],
         "Dredge": ["dredge", "fishing", "eldritch"],
         "Balatro": ["balatro", "joker", "poker roguelike"],
-        "Lies of P": ["lies of p", "pinocchio", "krat", "puppet"]
+        "Lies of P": ["lies of p", "pinocchio", "krat", "puppet"],
+        "Dark Souls III": ["dark souls", "ds3", "lothric", "cinder", "abyss watchers"],
+        "Monster Hunter: World": ["monster hunter", "mhw", "rathalos", "nergigante"],
+        "Forza Horizon 5": ["forza", "fh5", "horizon 5"],
+        "Stellaris": ["stellaris", "galaxy", "fallen empire"],
+        "Total War: WARHAMMER III": ["total war", "warhammer", "khorne", "nurgle"],
+        "Age of Empires IV": ["age of empires", "aoe4", "trebuchet"],
+        "Into the Breach": ["into the breach", "vek", "mechs"],
+        "RimWorld": ["rimworld", "colony sim", "pawn"],
+        "Dead Cells": ["dead cells", "beheaded", "prisoner's quarters"],
+        "Warframe": ["warframe", "tenno", "lotus", "excalibur"],
+        "Path of Exile": ["path of exile", "poe", "wraeclast"],
+        "Genshin Impact": ["genshin", "teyvat", "paimon", "primogem"],
+        "Destiny 2": ["destiny", "traveler", "guardian", "bungie"],
+        "Roblox": ["roblox", "blox", "adopt me", "robux"],
+        "Marvel Snap": ["marvel snap", "snap", "cosmic cubes"],
+        "The Sims 4": ["sims", "the sims", "plumbob"],
+        "Cry of Fear": ["cry of fear", "simon henriksson", "psykskallar"],
+        "Team Fortress 2": ["tf2", "team fortress", "heavy", "spy", "medic"]
       };
 
       let matchedGame = null;

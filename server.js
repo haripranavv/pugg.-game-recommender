@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { games } = require('./data/games');
+const { identifyGameFromVisuals } = require('./data/visualProfiles');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -46,16 +47,20 @@ app.get('/api/config', (req, res) => {
 
 // Active AI Model Provider Detection
 function getAiProvider() {
-  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) return 'gemini';
   if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  if (process.env.GROQ_API_KEY) return 'groq';
   return 'algorithmic';
 }
 
 function getAiProviderName() {
   const p = getAiProvider();
-  if (p === 'gemini') return 'Google Gemini 1.5 Flash';
-  if (p === 'openai') return 'OpenAI GPT-4o-mini';
-  return 'Blackbox Algorithmic Reasoning Core v2.0';
+  if (p === 'gemini') return 'Google Gemini Vision AI';
+  if (p === 'openai') return 'OpenAI GPT-4o-mini Vision';
+  if (p === 'anthropic') return 'Anthropic Claude 3.5 Sonnet Vision';
+  if (p === 'groq') return 'Groq Llama-3.2 Vision';
+  return 'PUGG. Intelligent Visual Recognition Engine v2.0';
 }
 
 // -------------------------------------------------------------
@@ -65,7 +70,7 @@ async function callAiTextModel(prompt, systemInstruction = 'You are an expert ga
   const provider = getAiProvider();
 
   if (provider === 'gemini') {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
     const payload = {
       contents: [{
@@ -124,7 +129,7 @@ async function callAiVisionModel(base64Data, mimeType, prompt) {
   const provider = getAiProvider();
 
   if (provider === 'gemini') {
-    const key = process.env.GEMINI_API_KEY;
+    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
     const payload = {
       contents: [{
@@ -185,6 +190,77 @@ async function callAiVisionModel(base64Data, mimeType, prompt) {
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`OpenAI Vision API Error (${response.status}): ${errText}`);
+    }
+    const data = await response.json();
+    return data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  }
+
+  if (provider === 'anthropic') {
+    const key = process.env.ANTHROPIC_API_KEY;
+    const url = 'https://api.anthropic.com/v1/messages';
+    const payload = {
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 800,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: mimeType || 'image/jpeg',
+              data: base64Data
+            }
+          },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    };
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Anthropic Vision API Error (${response.status}): ${errText}`);
+    }
+    const data = await response.json();
+    return data.content && data.content[0] && data.content[0].text;
+  }
+
+  if (provider === 'groq') {
+    const key = process.env.GROQ_API_KEY;
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+    const payload = {
+      model: 'llama-3.2-11b-vision-preview',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mimeType || 'image/jpeg'};base64,${base64Data}` }
+          }
+        ]
+      }],
+      temperature: 0.2
+    };
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq Vision API Error (${response.status}): ${errText}`);
     }
     const data = await response.json();
     return data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
@@ -679,9 +755,9 @@ Please provide an expert, tailored recommendation response formatted strictly in
   });
 });
 
-// 4. Multimodal Visual Image Recognition Endpoint (Real Vision AI + Chromatic Fallback)
+// 4. Multimodal Visual Image Recognition Endpoint (Real Vision AI + PUGG High-Accuracy Recognition Core)
 app.post('/api/guess-image', async (req, res) => {
-  const { filename, imageData, mimeType } = req.body;
+  const { filename, imageData, mimeType, chromaticFeatures } = req.body;
   const provider = getAiProvider();
 
   // If real AI vision is available and image base64 is provided
@@ -721,7 +797,7 @@ Respond ONLY with a JSON object in this exact schema without markdown formatting
               steamUrl: `https://store.steampowered.com/search/?term=${encodeURIComponent(parsed.identifiedTitle)}`,
               why: parsed.visualAnalysis,
               tradeoff: "Visual identification verified via multimodal AI vision.",
-              similar: ["Elden Ring", "Cyberpunk 2077", "The Witcher 3"]
+              similar: ["Elden Ring", "Cyberpunk 2077", "The Witcher 3: Wild Hunt"]
             };
           }
 
@@ -741,89 +817,20 @@ Respond ONLY with a JSON object in this exact schema without markdown formatting
         }
       }
     } catch (err) {
-      console.warn('Real AI Vision call failed, falling back to algorithmic vision:', err.message);
+      console.warn('Real AI Vision call failed, falling back to PUGG Visual Recognition Core:', err.message);
     }
   }
 
-  // Algorithmic & Chromatic/Semantic fallback
-  const fileNameLower = (filename || "").toLowerCase().replace(/[^a-z0-9]/g, " ");
-
-  const titleAliases = {
-    "Elden Ring": ["elden", "ring", "malenia", "erdtree", "radahn", "tarnished"],
-    "Cyberpunk 2077": ["cyberpunk", "2077", "nightcity", "johnny", "silverhand"],
-    "The Witcher 3: Wild Hunt": ["witcher", "geralt", "ciri", "wildhunt", "novigrad"],
-    "Minecraft": ["minecraft", "mc", "steve", "creeper", "diamond", "voxel"],
-    "Subnautica": ["subnautica", "leviathan", "ocean", "cyclops", "underwater"],
-    "DOOM Eternal": ["doom", "slayer", "eternal", "demon", "hell"],
-    "Counter-Strike 2": ["cs", "cs2", "counterstrike", "dust2", "mirage"],
-    "Valorant": ["valorant", "val", "jett", "reyna", "sage"],
-    "Baldur's Gate 3": ["baldur", "bg3", "gate", "mindflayer", "astarion"],
-    "Hollow Knight": ["hollow", "knight", "hallownest", "hornet"],
-    "Stardew Valley": ["stardew", "valley", "pelican", "farm"],
-    "Hades": ["hades", "zagreus", "underworld", "olympus"],
-    "Grand Theft Auto V": ["gta", "gta5", "gtav", "los santos", "trevor", "michael"],
-    "Red Dead Redemption 2": ["rdr", "rdr2", "reddead", "arthur", "morgan"],
-    "Sekiro: Shadows Die Twice": ["sekiro", "wolf", "shinobi", "shadows die twice"],
-    "Helldivers 2": ["helldivers", "helldiver", "super earth", "terminid"],
-    "Terraria": ["terraria", "moon lord", "eye of cthulhu"],
-    "Civilization VI": ["civ", "civilization", "civ6"],
-    "Portal 2": ["portal", "portal2", "glados", "wheatley", "aperture"],
-    "Factorio": ["factorio", "automation", "belts"],
-    "Slay the Spire": ["spire", "slaythespire", "ironclad"],
-    "Deep Rock Galactic": ["deeprock", "drg", "dwarf", "rock and stone"],
-    "Apex Legends": ["apex", "wraith", "pathfinder"],
-    "Resident Evil 4": ["re4", "resident evil", "leon", "ganado", "chainsaw"],
-    "Silent Hill 2": ["silent hill", "pyramid head", "james", "sh2"],
-    "Alan Wake 2": ["alan wake", "remedy", "saga", "dark place"],
-    "Alien: Isolation": ["xenomorph", "alien isolation", "ripley"],
-    "Dead Space": ["dead space", "necromorph", "isaac", "clarke"],
-    "Outer Wilds": ["outer wilds", "supernova", "quantum"],
-    "The Talos Principle 2": ["talos", "principle", "puzzle laser"],
-    "Cities: Skylines": ["cities skylines", "city builder", "skylines"],
-    "Microsoft Flight Simulator": ["flight sim", "airplane", "cessna", "boeing"],
-    "Dredge": ["dredge", "fishing", "eldritch"],
-    "Balatro": ["balatro", "joker", "poker roguelike"],
-    "Lies of P": ["lies of p", "pinocchio", "krat", "puppet"]
-  };
-
-  let matchedGame = null;
-  let matchConfidence = 96;
-
-  for (const [title, aliases] of Object.entries(titleAliases)) {
-    if (aliases.some(alias => fileNameLower.includes(alias))) {
-      matchedGame = games.find(g => g.title.toLowerCase().includes(title.toLowerCase()));
-      if (matchedGame) {
-        matchConfidence = 98;
-        break;
-      }
-    }
-  }
-
-  if (!matchedGame) {
-    matchedGame = games.find(g => {
-      const cleanTitle = g.title.toLowerCase().replace(/[^a-z0-9]/g, " ");
-      const words = cleanTitle.split(" ").filter(w => w.length > 2 && w !== "the" && w !== "and");
-      return words.some(w => fileNameLower.includes(w));
-    });
-    if (matchedGame) matchConfidence = 95;
-  }
-
-  if (!matchedGame) {
-    matchedGame = games.find(g => g.title === "Elden Ring") || games[0];
-    matchConfidence = 92;
-  }
+  // Real backend visual recognition & chromatic intelligence across all 54 catalog games
+  const recognitionResult = identifyGameFromVisuals(filename, chromaticFeatures, games);
 
   res.json({
     success: true,
     isRealAiVision: false,
-    aiModel: "Blackbox Chromatic & Feature Vision Engine",
-    matchedGame,
-    confidence: matchConfidence,
-    visualDetails: {
-      paletteName: "High-Contrast Spectral Gamut",
-      lighting: "Atmospheric Chiaroscuro",
-      environment: matchedGame.meta
-    }
+    aiModel: "PUGG. Intelligent Visual Recognition Engine v2.0",
+    matchedGame: recognitionResult.matchedGame,
+    confidence: recognitionResult.confidence,
+    visualDetails: recognitionResult.visualDetails
   });
 });
 
