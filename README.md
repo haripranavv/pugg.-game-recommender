@@ -1,59 +1,125 @@
-# Blackbox AI Game Recommendation System
+# 🐶 PUGG. — AI Game Discovery
 
-> **Don't search. Let the engine choose.**
-A production-grade, cyberpunk-themed AI Game Recommendation and Visual Recognition platform built with Node.js, Express, and modern JavaScript.
+> **Don't search. Let the engine choose. 🎮**
+
+PUGG. is an AI-powered game discovery platform that helps players find the perfect game based on their **preferences, mood, play style, and budget**.
+
+Built with Node.js, Express, modern JavaScript, and Supabase, PUGG. combines intelligent recommendations, voice input, visual game recognition, budget-aware suggestions, and a personal saved games library into one gaming experience.
+
+---
 
 ## 🎮 Features
-- **10-Vector Deep Reasoning Engine**: Evaluates primary and secondary genres, emotional mood, social topology (solo/co-op/PvP), difficulty curves, session cadence, core priorities, aesthetic tone, synergistic multipliers, budget compatibility, and Value-for-Money (VFM).
-- **Budget-Aware Recommendation System (Indian Rupees ₹)**: Supports Free to Play, Under ₹500, Under ₹1,000, Under ₹2,000, No Limit, and continuous custom budget sliders.
-- **Intelligent Free Alternative**: Automatically pairs recommended paid titles (*Premium Choice*) with high-quality free-to-play equivalents and explains gameplay differences.
-- **Multimodal AI Screenshot Vision**: Drag-and-drop or upload in-game screenshots to identify games via real Google Gemini / OpenAI vision or instant client-side chromatic analysis.
-- **Speech Recognition Profiler**: Click 🎙️ Speak to set gaming preferences via voice.
-- **Steam & Multi-Platform Integration**: Direct links to Steam store, saved games library, and pricing across Steam, Epic Games, and PlayStation Store.
-- **Resilient Offline Architecture**: Seamlessly falls back to the client-side engine if backend or API keys are unavailable.
 
-## ⚡ Quick Start (Local)
-`ash
-npm install
-npm start
-`
-Open http://localhost:4000 in your browser.
+### 🧠 Intelligent Game Recommendation Engine
 
-## ☁️ Deployment Guide (Public Online Hosting)
-The application is completely self-contained with relative API endpoints (/api/...). It requires no tunneling or port forwarding.
+PUGG. analyzes multiple dimensions of your gaming preferences, including:
 
-### 1. Deploying to Render.com (Recommended - 100% Free)
-1. Push this folder to a GitHub repository.
-2. On Render.com, click New + -> Web Service and select your repository.
-3. Set Build Command to: npm install
-4. Set Start Command to: node server.js
-5. (Optional) In Environment Variables, set GEMINI_API_KEY or OPENAI_API_KEY.
-6. Click Create Web Service. Render deploys your app with a public https://<app-name>.onrender.com URL.
+- Primary & secondary genres
+- Emotional mood
+- Solo, Co-op & PvP preferences
+- Difficulty preferences
+- Session length
+- Gameplay priorities
+- Visual & aesthetic preferences
+- Synergistic preference matching
+- Budget compatibility
+- Value for Money (VFM)
 
-### 2. Deploying to Railway.app
-1. On Railway.app, click New Project -> Deploy from GitHub repo.
-2. Select this repository. Railway will automatically deploy it.
-3. Generate a public domain under Settings -> Networking.
+---
 
-### 3. Deploying to Vercel
-1. Import this repository on vercel.com.
-2. The included vercel.json configures server.js as the serverless entrypoint.
-3. Click Deploy.
+### 💰 Budget-Aware Recommendations
 
-## 🔒 Environment Variables
-- `PORT`: Port on which the server listens (defaults to 4000 or provider-assigned PORT).
-- `SUPABASE_URL`: (Recommended) Your Supabase project URL (e.g., `https://xyzcompany.supabase.co`).
-- `SUPABASE_ANON_KEY`: (Recommended) Your Supabase public anonymous API key (`anon` `public`).
-- `GEMINI_API_KEY`: (Optional) Google Gemini API Key for generative reasoning and vision.
-- `OPENAI_API_KEY`: (Optional) OpenAI API Key.
+Find games that actually fit your wallet.
 
-## 🗄️ Supabase Authentication & Database Setup
-1. Create a free project at [supabase.com](https://supabase.com).
-2. Go to **Project Settings** > **API** and copy:
-   - **Project URL** -> `SUPABASE_URL`
-   - **Project API Anon Key** -> `SUPABASE_ANON_KEY`
-3. Add these to your `.env` file or hosting environment variables (e.g. Render / Vercel).
-4. Go to **SQL Editor** in Supabase, open `supabase_schema.sql` from this repository, paste the SQL, and click **Run**.
-   - Creates the `public.saved_games` table with user foreign keys.
-   - Automatically enables Row Level Security (RLS) with SELECT, INSERT, and DELETE policies restricting access strictly to each authenticated user (`auth.uid() = user_id`).
+Supports:
+
+- 🆓 Free to Play
+- 💸 Under ₹500
+- 💰 Under ₹1,000
+- 💎 Under ₹2,000
+- 🚀 No Limit
+- 🎚️ Custom Budget Slider
+
+PUGG. also evaluates **Value for Money (VFM)** when recommending games.
+
+---
+
+### 🆓 Intelligent Free Alternatives
+
+When a recommended game is paid, PUGG. can suggest a high-quality **free-to-play alternative**.
+
+It also explains the differences between:
+
+- 🎯 Premium Choice
+- 🆓 Free Alternative
+
+So players can decide whether the paid version is worth it.
+
+---
+
+### 👁️ AI Screenshot Recognition
+
+Upload or drag-and-drop an in-game screenshot.
+
+PUGG. can analyze the image using:
+
+- Google Gemini Vision
+- OpenAI Vision
+- Client-side fallback analysis
+
+This helps identify games and generate relevant recommendations.
+
+---
+
+### 🎙️ Voice Preference Input
+
+Use speech recognition to describe what you're looking for.
+
+Instead of manually selecting every preference, just tell PUGG. what kind of game you want to play.
+
+---
+
+### ⭐ Personal Saved Games Library
+
+Create an account and save games you want to play later.
+
+Features include:
+
+- Secure user authentication
+- Personal saved games
+- User-specific game libraries
+- Persistent cloud storage
+- Secure database access with Supabase Row Level Security
+
+---
+
+### 🛒 Multi-Platform Game Discovery
+
+Recommendations can include links and availability across platforms such as:
+
+- Steam
+- Epic Games
+- PlayStation Store
+
+---
+
+### ⚡ Resilient Architecture
+
+PUGG. is designed with fallback behavior.
+
+If external AI APIs are unavailable, the application can still use its local recommendation logic so the core experience remains functional.
+
+---
+
+# 🛠️ Tech Stack
+
+- **Frontend:** HTML, CSS, JavaScript
+- **Backend:** Node.js + Express
+- **Authentication:** Supabase Auth
+- **Database:** Supabase PostgreSQL
+- **AI:** Google Gemini / OpenAI
+- **Speech Recognition:** Web Speech API
+- **Deployment:** Compatible with Render, Railway, Vercel, and other Node.js hosting platforms
+
+---
 
